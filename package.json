@@ -1,0 +1,17 @@
+{
+  "name": "ufc-api",
+  "version": "1.0.0",
+  "description": "RESTful API providing scraped UFC fighter data",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "cheerio": "^1.0.0-rc.3",
+    "express": "^4.17.1"
+  }
+}
