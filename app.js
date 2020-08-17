@@ -11,11 +11,31 @@ const RANKINGS_FILEPATH = './rankings.json'
 /* Routes */
 /**********/
 app.get('/', (req, res) => {
-  getRankings().then(data => {
-    res.json(data)
-  }).catch(err => {
-    res.status(500).json({ error: err })
-  })
+  const routes = 
+  `Available routes:<br><br>
+  GET /athletes<br>
+  GET /athletes/:athleteId<br>
+  GET /divisions<br>
+  GET /divisions/:divisionId`
+
+  res.send(String(routes))
+})
+
+app.get('/athletes', (req, res) => {
+  getRankings().then((data => {
+    const { athletes } = data
+    let athleteData = []
+
+    for (let athlete in athletes) {
+      const { name, nickname, division, country } = athletes[athlete]
+      athleteData.push({
+        name, nickname, division, country, 
+        athleteId: athlete
+      })
+    }
+
+    res.json({ athletes: athleteData })
+  })).catch(err => res.status(500).json({ error: err }))
 })
 
 app.get('/athletes/:athleteId', (req, res) => {
@@ -33,6 +53,32 @@ app.get('/athletes/:athleteId', (req, res) => {
   }).catch(err => res.status(500).json({ error: err }))
 })
 
+app.get('/divisions', (req, res) => {
+  getRankings().then(data => {
+    const { divisions, athletes } = data
+
+    for (let division in divisions) {
+      const champId = divisions[division].champion.athleteId
+      const { country } = athletes[champId]
+
+      divisions[division].champion = {
+        ...divisions[division].champion,
+        country
+      }
+
+      divisions[division].contenders.forEach((contender, i) => {
+        const { country } = athletes[contender.athleteId]
+        divisions[division].contenders[i] = {
+          ...divisions[division].contenders[i],
+          country
+        }
+      })
+    }
+
+    res.json({ divisions })
+  }).catch(err => res.status(500).json({ error: err}))
+})
+
 app.get('/divisions/:divisionId', (req, res) => {
   const { divisionId } = req.params
   
@@ -44,25 +90,23 @@ app.get('/divisions/:divisionId', (req, res) => {
       return res.status(404).json({ error: `division not found: ${divisionId}` })
     }
 
-    // get champ profile
+    // get champ country
     const champId = division.champion.athleteId
-    const champProfile = athletes[champId]
-    delete champProfile["division"]
+    const { country } = athletes[champId]
+
     division.champion = {
       ...division.champion,
-      ...champProfile
+      country
     }
 
-
-    // get contenders profiles
+    // get contenders countries
     division.contenders.forEach((contender, i) => {
       const { athleteId } = contender
-      const athleteProfile = athletes[athleteId]
-      delete athleteProfile["division"]
+      const { country } = athletes[athleteId]
 
       division.contenders[i] = {
         ...division.contenders[i],
-        ...athleteProfile
+        country
       }
     })
 
