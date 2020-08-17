@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
   ufcRankingsData = getRankings().then(data => {
     res.json(data)
   }).catch(err => {
-    console.error(err)
+    res.status(500).json({ error: err })
   })
 })
 
