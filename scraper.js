@@ -124,11 +124,15 @@ async function parseAthleteProfile(athleteId) {
 
   const $ = cheerio.load(httpResp.data)
 
+  // athlete name
+  const name = $('.field-name-name').text().trim()
+
   // athlete bio info
   const bioData = $('.c-bio__text')
   const bioLabels = $('.c-bio__label')
   let bioItems = []
   const bio = {}
+
   bioData.each((i, elem) => {
     const data = $(elem).text().trim()
     bioItems.push(data)
@@ -138,6 +142,9 @@ async function parseAthleteProfile(athleteId) {
     label = toCamelCase(label)
     bio[label] = bioItems[i]
   })
+
+  // athlete country
+  const country = bio.hometown ? getCountryFromHometown(bio.hometown) : ""
 
   // social media links
   const socialLinks = {}
@@ -163,19 +170,50 @@ async function parseAthleteProfile(athleteId) {
   const losses = wldTokens[1]
   const draws = wldTokens[2].split(" ")[0]
 
+  // promoted stats
+  const promotedStatsHtml = $('.c-record__promoted-figure')
+  const promotedStatsLabelsHtml = $('.c-record__promoted-text')
+  let promotedStats = []
+  let statsData = []
+
+  promotedStatsHtml.each((i, elem) => {
+    const statData = $(elem).text()
+    statsData[i] = Number(statData)
+  })
+  promotedStatsLabelsHtml.each((i, elem) => {
+    const statLabel = $(elem).text()
+    if (statLabel) {
+      promotedStats.push({ 
+        "stat": statLabel,
+        "data": statsData[i] 
+      })
+    }
+  })
+
   const profile = {
     athleteId,
+    name,
     nickname: $('.field-name-nickname').text().trim().replace(/['"]+/g, ''),
     division,
+    country,
     wins,
     losses,
     draws,
     ...bio,
+    promotedStats,
     socialMediaLinks: {
       ...socialLinks
     }
   }
   
   return profile
+}
+
+function getCountryFromHometown(hometown) {
+  const hometownTokens = hometown.split(",")
+  const country = hometownTokens.length > 1 ? hometownTokens[1].trim()
+    : hometownTokens[0].trim()
+
+  return country
 }
 
