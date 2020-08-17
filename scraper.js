@@ -1,6 +1,7 @@
 const cheerio = require('cheerio')
 const axios = require('axios')
 const toCamelCase = require('./util/toCamelCase')
+const toKebabCase = require('./util/toKebabCase')
 
 const UFC_BASE_URL = "https://www.ufc.com"
 const UFC_RANKINGS_URL = "https://www.ufc.com/rankings"
@@ -20,7 +21,7 @@ exports.parseUfcRankings = async function parseUfcRankings() {
     weightDivisionsHtml.each((i, elem) => {
       const divisionHtml = $(elem)
 
-      const divisionTitle = divisionHtml.find('h4').text().trim()
+      const divisionTitle = toKebabCase(divisionHtml.find('h4').text().trim())
       const contenders = parseDivisionTopFifteen(divisionHtml)
       const division = {
         champion: parseDivisionChamp(divisionHtml),
@@ -36,7 +37,7 @@ exports.parseUfcRankings = async function parseUfcRankings() {
 
     return {
       divisions: ufcWeightDivisions, 
-      athleteProfiles: ufcAthleteProfiles,
+      athletes: ufcAthleteProfiles,
       lastUpdated: timestamp.toUTCString()
     }
   } catch (err) {
@@ -74,7 +75,6 @@ function parseDivisionTopFifteen(divisionHtml) {
     // athlete ID
     const splitUrl = fighterHtml['0'].attribs.href.split('/')
     const athleteId = splitUrl[splitUrl.length - 1]
-    console.log(athleteId)
 
     const fighter = {
       name: fighterHtml.text(),
@@ -102,11 +102,15 @@ async function parseAthleteProfiles(ufcWeightDivisions) {
   }
  
   return Promise.all(profilePromises)
-    .then(vals => {
+    .then(profiles => {
       let ufcAthleteProfiles = {}
-      for (let val in vals) {
-        const id = vals[val].athleteId
-        ufcAthleteProfiles[id] = vals[val]
+      for (let i in profiles) {
+        const profile = profiles[i]
+        const { athleteId } = profile
+
+        delete profile["athleteId"]
+        
+        ufcAthleteProfiles[athleteId] = profile
       }
       return ufcAthleteProfiles 
     })
@@ -146,9 +150,26 @@ async function parseAthleteProfile(athleteId) {
     socialLinks[socialPlatform] = socialLink
   })
 
+  // win-loss-draw
+  const headlineHtml = $('.c-hero__headline-suffix')
+  const tokens = headlineHtml.text().split("\n")
+  const division = (tokens[1].trim().length > 8) ? tokens[1].trim() :
+    tokens[2].trim()
+  const winLossDraw = (tokens[3].trim().length > 12) ? tokens[3].trim() : 
+    tokens[4].trim()
+
+  const wldTokens = winLossDraw.split('-')
+  const wins = wldTokens[0]
+  const losses = wldTokens[1]
+  const draws = wldTokens[2].split(" ")[0]
+
   const profile = {
     athleteId,
     nickname: $('.field-name-nickname').text().trim().replace(/['"]+/g, ''),
+    division,
+    wins,
+    losses,
+    draws,
     ...bio,
     socialMediaLinks: {
       ...socialLinks

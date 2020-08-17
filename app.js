@@ -11,11 +11,63 @@ const RANKINGS_FILEPATH = './rankings.json'
 /* Routes */
 /**********/
 app.get('/', (req, res) => {
-  ufcRankingsData = getRankings().then(data => {
+  getRankings().then(data => {
     res.json(data)
   }).catch(err => {
     res.status(500).json({ error: err })
   })
+})
+
+app.get('/athletes/:athleteId', (req, res) => {
+  const { athleteId } = req.params
+
+  getRankings().then(data => {
+    const { athletes } = data
+    const athlete = athletes[athleteId]
+
+    if (!athlete) {
+      return res.status(404).json({ error: `fighter not found: ${athleteId}` })
+    }
+
+    res.json({ [athleteId]: athlete })
+  }).catch(err => res.status(500).json({ error: err }))
+})
+
+app.get('/divisions/:divisionId', (req, res) => {
+  const { divisionId } = req.params
+  
+  getRankings().then(data => {
+    const { divisions, athletes } = data
+    const division = divisions[divisionId]
+
+    if (!division) {
+      return res.status(404).json({ error: `division not found: ${divisionId}` })
+    }
+
+    // get champ profile
+    const champId = division.champion.athleteId
+    const champProfile = athletes[champId]
+    delete champProfile["division"]
+    division.champion = {
+      ...division.champion,
+      ...champProfile
+    }
+
+
+    // get contenders profiles
+    division.contenders.forEach((contender, i) => {
+      const { athleteId } = contender
+      const athleteProfile = athletes[athleteId]
+      delete athleteProfile["division"]
+
+      division.contenders[i] = {
+        ...division.contenders[i],
+        ...athleteProfile
+      }
+    })
+
+    res.json({ [divisionId]: division })
+  }).catch(err => res.status(500).json({ error: err }))
 })
 
 // Read UFC rankings data from file. If no file is found, or the data is stale,

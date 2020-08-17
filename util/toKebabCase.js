@@ -1,17 +1,15 @@
-module.exports = function toCamelCase(str) {
-  let camel = ""
+module.exports = function toKebabCase(str) {
+  let kebab = ""
 
   str = str.toLowerCase()
   for (let i = 0; i < str.length; i++) {
     let ch = str[i]
     if (ch.charCodeAt(0) >= 97 && ch.charCodeAt(0) <= 122) {
-      camel += ch
+      kebab += ch
     } else if (ch === " " || ch === "-") {
-      i++
-      ch = String.fromCharCode(str[i].charCodeAt(0) - 32)
-      camel += ch
+      kebab += "-"
     }
   }
-
-  return camel
+  
+  return kebab
 }
