@@ -147,14 +147,14 @@ async function parseAthleteProfile(athleteId) {
   const country = bio.hometown ? getCountryFromHometown(bio.hometown) : ""
 
   // social media links
-  const socialLinks = {}
   const socialMediaHtml = $('.c-bio__social-link')
+  const socialMediaLinks = {}
   socialMediaHtml.each((i, elem) => {
     const socialLink = $(elem)['0'].attribs.href
     let socialPlatform = socialLink.split("/")[2]
     socialPlatform = socialPlatform.slice(0, socialPlatform.length - 4)
 
-    socialLinks[socialPlatform] = socialLink
+    socialMediaLinks[socialPlatform] = socialLink
   })
 
   // win-loss-draw
@@ -166,9 +166,9 @@ async function parseAthleteProfile(athleteId) {
     tokens[4].trim()
 
   const wldTokens = winLossDraw.split('-')
-  const wins = wldTokens[0]
-  const losses = wldTokens[1]
-  const draws = wldTokens[2].split(" ")[0]
+  const wins = Number(wldTokens[0])
+  const losses = Number(wldTokens[1])
+  const draws = Number(wldTokens[2].split(" ")[0])
 
   // promoted stats
   const promotedStatsHtml = $('.c-record__promoted-figure')
@@ -190,6 +190,31 @@ async function parseAthleteProfile(athleteId) {
     }
   })
 
+  // striking and grappling accuracy
+  const accuracyHtml = $('.e-chart-circle__percent').contents()
+  const strikingAccuracy = accuracyHtml[0] ? accuracyHtml[0].data : ""
+  const grapplingAccuracy = accuracyHtml[1] ? accuracyHtml[1].data : ""
+
+  // significant strikes and takedowns
+  const statsTextHtml = $('.c-overlap__stats-text')
+  const statsValueHtml = $('.c-overlap__stats-value')
+  let strikesTakedownsValues = []
+  let fightingStats = []
+
+  statsValueHtml.each((i, elem) => {
+    const statData = $(elem).text()
+    strikesTakedownsValues[i] = Number(statData)
+  })
+  statsTextHtml.each((i, elem) => {
+    const statLabel = $(elem).text()
+    if (statLabel) {
+      fightingStats.push({
+        "stat": statLabel,
+        "data": strikesTakedownsValues[i]
+      })
+    }
+  })
+
   const profile = {
     athleteId,
     name,
@@ -200,10 +225,11 @@ async function parseAthleteProfile(athleteId) {
     losses,
     draws,
     ...bio,
+    strikingAccuracy,
+    grapplingAccuracy,
+    fightingStats,
     promotedStats,
-    socialMediaLinks: {
-      ...socialLinks
-    }
+    socialMediaLinks
   }
   
   return profile
