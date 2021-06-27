@@ -125,7 +125,7 @@ async function parseAthleteProfile(athleteId) {
   const $ = cheerio.load(httpResp.data)
 
   // athlete name
-  const name = $('.field-name-name').text().trim()
+  const name = $('c-hero--full__headline').text().trim()
 
   // athlete bio info
   const bioData = $('.c-bio__text')
